@@ -41,6 +41,7 @@ static TaskHandle_t xPsTaskHandle = NULL;
 
 extern esp_err_t audio_init();
 extern esp_err_t video_init();
+extern esp_err_t camera_init();
 extern void audio_task(void *pvParameters);
 extern void video_task(void *pvParameters);
 extern void camera_task(void *pvParameters);
@@ -244,8 +245,8 @@ esp_err_t custom_connect()
   // Configure the WiFi connection
   wifi_config_t wifi_config = {
       .sta = {
-          .ssid = "Blynk",
-          .password = "12345678",
+          .ssid = "BenMur",
+          .password = "MurBen3128",
           .threshold.authmode = WIFI_AUTH_WPA2_PSK,
       },
   };
@@ -299,10 +300,11 @@ void app_main(void)
   uint8_t mac[8] = {0};
 
   PeerConfiguration config = {
-      .ice_servers = {
-          {.urls = "stun:stun.l.google.com:19302"}},
-      .audio_codec = CODEC_OPUS,
-      .video_codec = CODEC_H264};
+    .ice_servers = {
+      { .urls = "stun:stun.l.google.com:19302" }
+    },
+    .datachannel = DATA_CHANNEL_BINARY,
+  };
 
   ESP_LOGI(TAG, "[APP] Startup..");
   ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
@@ -316,40 +318,45 @@ void app_main(void)
   esp_log_level_set("TRANSPORT", ESP_LOG_VERBOSE);
   esp_log_level_set("OUTBOX", ESP_LOG_VERBOSE);
 
+  wifi_scan();
+  
   ESP_ERROR_CHECK(nvs_flash_init());
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());
   ESP_ERROR_CHECK(mdns_init());
-
+  ESP_ERROR_CHECK(custom_connect()); // Using custom_connect instead of example_connect
+  
   if (esp_read_mac(mac, ESP_MAC_WIFI_STA) == ESP_OK) {
     sprintf(deviceid, "esp32-%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Device ID: %s", deviceid);
   }
 
-  wifi_scan();
-  ESP_ERROR_CHECK(custom_connect()); // Using custom_connect instead of example_connect
 
+  /*
   audio_init();
 
   video_init();
 
+  */
+
   peer_init();
+  camera_init();
 
   g_pc = peer_connection_create(&config);
   peer_connection_oniceconnectionstatechange(g_pc, oniceconnectionstatechange);
+  peer_connection_ondatachannel(g_pc, onmessasge, onopen, onclose);
+
   peer_signaling_join_channel(deviceid, g_pc);
 
-  xTaskCreatePinnedToCore(audio_task, "audio", 20480, NULL, 5, &xAudioTaskHandle, 0);
-
-
   xTaskCreatePinnedToCore(camera_task, "camera", 4096, NULL, 6, &xCameraTaskHandle, 0);
-  //xTaskCreatePinnedToCore(video_task, "video", 10240, NULL, 6, &xVideoTaskHandle, 0);
-  xTaskCreatePinnedToCore(peer_signaling_task, "peer_signaling", 8192, NULL, 10, &xPsTaskHandle, 0);
   xTaskCreatePinnedToCore(peer_connection_task, "peer_connection", 8192, NULL, 10, &xPcTaskHandle, 1);
-
+  xTaskCreatePinnedToCore(peer_signaling_task, "peer_signaling", 8192, NULL, 10, &xPsTaskHandle, 0);
 
   ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
   ESP_LOGI(TAG, "open https://sepfy.github.io/webrtc?deviceId=%s", deviceid);
-
   ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+
+  while (1) {
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
 }

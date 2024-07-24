@@ -65,6 +65,19 @@ static camera_config_t camera_config = {
   .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
 };
 
+esp_err_t camera_init(){
+
+    //initialize the camera
+    esp_err_t err = esp_camera_init(&camera_config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Camera Init Failed");
+        return err;
+    }
+
+    return ESP_OK;
+}
+
+
 esp_err_t video_init(){
 
   esp_err_t err = esp_camera_init(&camera_config);
