@@ -10,6 +10,7 @@
 #include "peer_connection.h"
 
 extern PeerConnection *g_pc;
+extern int gDataChannelOpened;
 extern PeerConnectionState eState;
 extern int get_timestamp();
 static const char *TAG = "VIDEO";
@@ -118,7 +119,7 @@ void video_task(void *pvParameters) {
 
   for(;;) {
 
-    if (eState == PEER_CONNECTION_COMPLETED) {
+    if ((eState == PEER_CONNECTION_COMPLETED)) {
 
       fb = esp_camera_fb_get();
 
@@ -126,7 +127,7 @@ void video_task(void *pvParameters) {
 
         ESP_LOGE(TAG, "Camera capture failed");
       }
-
+    
       memcpy(in_frame.raw_data.buffer, fb->buf, fb->len);
 
       in_frame.pts = frame_count * (1000 / cfg.fps);
@@ -183,4 +184,52 @@ void video_task(void *pvParameters) {
   }
 
 }
+
+
+
+
+void camera_task(void *pvParameters) {
+
+  static int fps = 0;
+  static int64_t last_time;
+  int64_t curr_time;
+
+  camera_fb_t * fb = NULL;
+
+  ESP_LOGI(TAG, "Camera Task Started");
+
+  last_time = get_timestamp();
+
+  for(;;) {
+
+    if ((eState == PEER_CONNECTION_COMPLETED) && gDataChannelOpened) {
+
+      fb = esp_camera_fb_get();
+
+      if (!fb) {
+
+        ESP_LOGE(TAG, "Camera capture failed");
+      }
+
+      //ESP_LOGI(TAG, "Camera captured. size=%zu, timestamp=%llu", fb->len, fb->timestamp);
+      peer_connection_datachannel_send(g_pc, (char*)fb->buf, fb->len);
+
+      fps++;
+
+      if ((fps % 100) == 0) {
+
+        curr_time = get_timestamp();
+        ESP_LOGI(TAG, "Camera FPS=%.2f", 1000.0f / (float)(curr_time - last_time) * 100.0f);
+        last_time = curr_time;
+      }
+
+      esp_camera_fb_return(fb);
+    }
+
+    // 10 FPS
+    vTaskDelay(pdMS_TO_TICKS(1000/10));
+  }
+
+}
+
 

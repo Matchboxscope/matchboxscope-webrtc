@@ -1,2 +1,5 @@
 cmake
 dist
+/examples/esp32s3/build
+/examples/esp32s3/managed_components
+/esp-idf

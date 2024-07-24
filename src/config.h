@@ -30,7 +30,7 @@
 #define MQTT_HOST "test.mosquitto.org"
 #define MQTT_PORT 8883
 
-#define WHIP_HOST "192.168.1.110"
+#define WHIP_HOST "192.168.43.235"
 #define WHIP_PATH "/index/api/whip?app=live&stream=test"
 #define WHIP_PORT 443
 
