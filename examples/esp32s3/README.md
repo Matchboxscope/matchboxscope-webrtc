@@ -22,6 +22,7 @@ $ git clone --recursive https://github.com/sepfy/esp_ports.git components/srtp
 ### Configure
 ```bash
 conda deactivate
+conda deactivate
 cd /Users/bene/Dropbox/Dokumente/Promotion/PROJECTS/matchboxscope-webrtc/esp-idf
 source export.sh
 cd /Users/bene/Dropbox/Dokumente/Promotion/PROJECTS/matchboxscope-webrtc/examples/esp32s3
@@ -34,7 +35,7 @@ Modify the ```WHIP_HOST```, ```WHIP_PATH``` of ```src/config.h```
 ### Build 
 ```bash
 cd /Users/bene/Dropbox/Dokumente/Promotion/PROJECTS/matchboxscope-webrtc/examples/esp32s3
-idf.py build
+idf.py build && idf.py flash
 ```
 
 ### Test

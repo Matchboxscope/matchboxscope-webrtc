@@ -32,7 +32,7 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static int s_retry_num = 0;
 
-
+static bool ISH264 = true;
 static TaskHandle_t xPcTaskHandle = NULL;
 static TaskHandle_t xAudioTaskHandle = NULL;
 static TaskHandle_t xVideoTaskHandle = NULL;
@@ -45,7 +45,6 @@ extern esp_err_t camera_init();
 extern void audio_task(void *pvParameters);
 extern void video_task(void *pvParameters);
 extern void camera_task(void *pvParameters);
-
 
 // Event group to signal when we are connected
 static EventGroupHandle_t s_wifi_event_group;
@@ -66,57 +65,62 @@ int64_t get_timestamp()
   return (tv.tv_sec * 1000LL + (tv.tv_usec / 1000LL));
 }
 
-static void oniceconnectionstatechange(PeerConnectionState state, void *user_data) {
+static void oniceconnectionstatechange(PeerConnectionState state, void *user_data)
+{
 
   ESP_LOGI(TAG, "PeerConnectionState: %d", state);
   eState = state;
   // not support datachannel close event
-  if (eState != PEER_CONNECTION_COMPLETED) {
+  if (eState != PEER_CONNECTION_COMPLETED)
+  {
     gDataChannelOpened = 0;
   }
 }
 
-static void onmessasge(char *msg, size_t len, void *userdata) {
+static void onmessasge(char *msg, size_t len, void *userdata)
+{
 
   ESP_LOGI(TAG, "Datachannel message: %.*s, size", len, msg);
 }
 
-void onopen(void *userdata) {
- 
+void onopen(void *userdata)
+{
+
   ESP_LOGI(TAG, "Datachannel opened");
   gDataChannelOpened = 1;
 }
 
-static void onclose(void *userdata) {
- 
+static void onclose(void *userdata)
+{
 }
 
-void peer_signaling_task(void *arg) {
+void peer_signaling_task(void *arg)
+{
 
   ESP_LOGI(TAG, "peer_signaling_task started");
 
-  for(;;) {
+  for (;;)
+  {
 
     peer_signaling_loop();
 
     vTaskDelay(pdMS_TO_TICKS(10));
   }
-
 }
 
-void peer_connection_task(void *arg) {
+void peer_connection_task(void *arg)
+{
 
   ESP_LOGI(TAG, "peer_connection_task started");
 
-  for(;;) {
+  for (;;)
+  {
 
     peer_connection_loop(g_pc);
 
     vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
-
-
 
 static void event_handler(void *arg, esp_event_base_t event_base,
                           int32_t event_id, void *event_data)
@@ -149,63 +153,67 @@ static void event_handler(void *arg, esp_event_base_t event_base,
   }
 }
 
-const char *get_auth_mode_name(wifi_auth_mode_t auth_mode) {
-    switch (auth_mode) {
-        case WIFI_AUTH_OPEN:
-            return "WIFI_AUTH_OPEN";
-        case WIFI_AUTH_WEP:
-            return "WIFI_AUTH_WEP";
-        case WIFI_AUTH_WPA_PSK:
-            return "WIFI_AUTH_WPA_PSK";
-        case WIFI_AUTH_WPA2_PSK:
-            return "WIFI_AUTH_WPA2_PSK";
-        case WIFI_AUTH_WPA_WPA2_PSK:
-            return "WIFI_AUTH_WPA_WPA2_PSK";
-        case WIFI_AUTH_WPA3_PSK:
-            return "WIFI_AUTH_WPA3_PSK";
-        case WIFI_AUTH_WPA2_WPA3_PSK:
-            return "WIFI_AUTH_WPA2_WPA3_PSK";
-        default:
-            return "UNKNOWN";
-    }
+const char *get_auth_mode_name(wifi_auth_mode_t auth_mode)
+{
+  switch (auth_mode)
+  {
+  case WIFI_AUTH_OPEN:
+    return "WIFI_AUTH_OPEN";
+  case WIFI_AUTH_WEP:
+    return "WIFI_AUTH_WEP";
+  case WIFI_AUTH_WPA_PSK:
+    return "WIFI_AUTH_WPA_PSK";
+  case WIFI_AUTH_WPA2_PSK:
+    return "WIFI_AUTH_WPA2_PSK";
+  case WIFI_AUTH_WPA_WPA2_PSK:
+    return "WIFI_AUTH_WPA_WPA2_PSK";
+  case WIFI_AUTH_WPA3_PSK:
+    return "WIFI_AUTH_WPA3_PSK";
+  case WIFI_AUTH_WPA2_WPA3_PSK:
+    return "WIFI_AUTH_WPA2_WPA3_PSK";
+  default:
+    return "UNKNOWN";
+  }
 }
 
+void wifi_scan()
+{
+  wifi_scan_config_t scan_config = {
+      .ssid = NULL,
+      .bssid = NULL,
+      .channel = 0,
+      .show_hidden = true};
 
-void wifi_scan() {
-    wifi_scan_config_t scan_config = {
-        .ssid = NULL,
-        .bssid = NULL,
-        .channel = 0,
-        .show_hidden = true
-    };
+  ESP_LOGI(TAG, "Starting WiFi scan");
 
-    ESP_LOGI(TAG, "Starting WiFi scan");
+  esp_err_t ret = esp_wifi_scan_start(&scan_config, true);
+  if (ret == ESP_ERR_WIFI_STATE)
+  {
+    ESP_LOGW(TAG, "WiFi is in an invalid state to start scanning. Make sure WiFi is not connecting or already connected.");
+    return;
+  }
+  else if (ret != ESP_OK)
+  {
+    ESP_LOGE(TAG, "WiFi scan failed: %s", esp_err_to_name(ret));
+    return;
+  }
 
-    esp_err_t ret = esp_wifi_scan_start(&scan_config, true);
-    if (ret == ESP_ERR_WIFI_STATE) {
-        ESP_LOGW(TAG, "WiFi is in an invalid state to start scanning. Make sure WiFi is not connecting or already connected.");
-        return;
-    } else if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "WiFi scan failed: %s", esp_err_to_name(ret));
-        return;
-    }
+  uint16_t number = DEFAULT_SCAN_LIST_SIZE;
+  wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
+  uint16_t ap_count = 0;
+  memset(ap_info, 0, sizeof(ap_info));
 
-    uint16_t number = DEFAULT_SCAN_LIST_SIZE;
-    wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
-    uint16_t ap_count = 0;
-    memset(ap_info, 0, sizeof(ap_info));
-
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
-    ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
-    for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
-        ESP_LOGI(TAG, "SSID \t\t%s", ap_info[i].ssid);
-        ESP_LOGI(TAG, "RSSI \t\t%d", ap_info[i].rssi);
-        ESP_LOGI(TAG, "Channel \t\t%d", ap_info[i].primary);
-        ESP_LOGI(TAG, "Authmode \t\t%s", get_auth_mode_name(ap_info[i].authmode));
-    }
+  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
+  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+  ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
+  for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++)
+  {
+    ESP_LOGI(TAG, "SSID \t\t%s", ap_info[i].ssid);
+    ESP_LOGI(TAG, "RSSI \t\t%d", ap_info[i].rssi);
+    ESP_LOGI(TAG, "Channel \t\t%d", ap_info[i].primary);
+    ESP_LOGI(TAG, "Authmode \t\t%s", get_auth_mode_name(ap_info[i].authmode));
+  }
 }
-
 
 // Custom connect function
 esp_err_t custom_connect()
@@ -245,16 +253,25 @@ esp_err_t custom_connect()
   // Configure the WiFi connection
   wifi_config_t wifi_config = {
       .sta = {
-          .ssid = "BenMur",
-          .password = "MurBen3128",
+          //.ssid = "IPHT-Internet",
+          //.password = "D3vk_?RkH!25nz", 
+          
+          .ssid = "Blynk", //"BenMur",         //
+          .password = "12345678", //"MurBen3128", //
+          
+          
+         /*.ssid = "BenMur",         //
+          .password = "MurBen3128", //
           .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+          */
+          
       },
   };
 
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
   ESP_ERROR_CHECK(esp_wifi_start());
-  
+
   ESP_LOGI(TAG, "Scanning Wifi: %s", wifi_config.sta.ssid);
   ESP_LOGI(TAG, "Connecting to SSID: %s", wifi_config.sta.ssid);
 
@@ -289,21 +306,17 @@ esp_err_t custom_connect()
   return ret;
 }
 
-
-
-
-
-
 void app_main(void)
 {
   static char deviceid[32] = {0};
   uint8_t mac[8] = {0};
 
   PeerConfiguration config = {
-    .ice_servers = {
-      { .urls = "stun:stun.l.google.com:19302" }
-    },
-    .datachannel = DATA_CHANNEL_BINARY,
+      .ice_servers = {
+          {.urls = "stun:stun.l.google.com:19302"}},
+      .datachannel = DATA_CHANNEL_BINARY,
+      .audio_codec = CODEC_OPUS,
+      .video_codec = CODEC_H264
   };
 
   ESP_LOGI(TAG, "[APP] Startup..");
@@ -319,28 +332,29 @@ void app_main(void)
   esp_log_level_set("OUTBOX", ESP_LOG_VERBOSE);
 
   wifi_scan();
-  
+
   ESP_ERROR_CHECK(nvs_flash_init());
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());
   ESP_ERROR_CHECK(mdns_init());
   ESP_ERROR_CHECK(custom_connect()); // Using custom_connect instead of example_connect
-  
-  if (esp_read_mac(mac, ESP_MAC_WIFI_STA) == ESP_OK) {
+
+  if (esp_read_mac(mac, ESP_MAC_WIFI_STA) == ESP_OK)
+  {
     sprintf(deviceid, "esp32-%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Device ID: %s", deviceid);
   }
 
-
-  /*
-  audio_init();
-
-  video_init();
-
-  */
-
   peer_init();
-  camera_init();
+  if (ISH264)
+  {
+    audio_init();
+    video_init();
+  }
+  else
+  {
+    camera_init();
+  }
 
   g_pc = peer_connection_create(&config);
   peer_connection_oniceconnectionstatechange(g_pc, oniceconnectionstatechange);
@@ -348,15 +362,28 @@ void app_main(void)
 
   peer_signaling_join_channel(deviceid, g_pc);
 
-  xTaskCreatePinnedToCore(camera_task, "camera", 4096, NULL, 6, &xCameraTaskHandle, 0);
   xTaskCreatePinnedToCore(peer_connection_task, "peer_connection", 8192, NULL, 10, &xPcTaskHandle, 1);
   xTaskCreatePinnedToCore(peer_signaling_task, "peer_signaling", 8192, NULL, 10, &xPsTaskHandle, 0);
+
+  if (ISH264)
+  {
+    xTaskCreatePinnedToCore(audio_task, "audio", 20480, NULL, 5, &xAudioTaskHandle, 0);
+
+    xTaskCreatePinnedToCore(video_task, "video", 10240, NULL, 6, &xVideoTaskHandle, 0);
+
+
+  }
+  else
+  {
+    xTaskCreatePinnedToCore(camera_task, "camera", 4096, NULL, 6, &xCameraTaskHandle, 0);
+  }
 
   ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
   ESP_LOGI(TAG, "open https://sepfy.github.io/webrtc?deviceId=%s", deviceid);
   ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
 
-  while (1) {
+  while (1)
+  {
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }

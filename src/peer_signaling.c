@@ -229,6 +229,7 @@ HTTPResponse_t peer_signaling_http_request(const TransportInterface_t *transport
 
 static int peer_signaling_http_post(const char *hostname, const char *path, int port, const char *body) { 
   int32_t ret = EXIT_SUCCESS;
+  LOGI("Sending HTTP POST to %s%s...", hostname, path);
 
   TransportInterface_t trans_if = {0};
   NetworkContext_t net_ctx;

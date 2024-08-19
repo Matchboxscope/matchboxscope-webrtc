@@ -1,0 +1,64 @@
+# Use the official Eclipse Mosquitto image as the base image
+# sudo docker build -t mqtt-broker-tls .
+# sudo docker run -it -p 8883:8883 -p 8084:8084 --name mqtt-broker mqtt-broker-tls
+# sudo docker stop mqtt-broker-tls
+
+
+# Use the official Eclipse Mosquitto image as the base image
+FROM eclipse-mosquitto:2.0
+
+# Set environment variables for the broker
+ENV MQTT_PORT=8883
+ENV WEBSOCKET_PORT=8084
+ENV MQTT_TLS_CERT=/mosquitto/config/certs/server.crt
+ENV MQTT_TLS_KEY=/mosquitto/config/certs/server.key
+ENV MQTT_TLS_CA=/mosquitto/config/certs/ca.crt
+
+# Create directories for certificates
+RUN mkdir -p /mosquitto/config/certs
+
+# Install OpenSSL to generate certificates
+RUN apk update && apk add openssl
+
+# Generate self-signed CA certificate
+RUN openssl req -x509 -newkey rsa:4096 -sha256 -days 365 \
+    -nodes -keyout /mosquitto/config/certs/ca.key \
+    -out /mosquitto/config/certs/ca.crt \
+    -subj "/CN=MQTT_CA"
+
+# Generate server certificate and key
+RUN openssl req -newkey rsa:4096 -days 365 \
+    -nodes -keyout /mosquitto/config/certs/server.key \
+    -out /mosquitto/config/certs/server.csr \
+    -subj "/CN=mosquitto_server"
+RUN openssl x509 -req -in /mosquitto/config/certs/server.csr \
+    -CA /mosquitto/config/certs/ca.crt -CAkey /mosquitto/config/certs/ca.key \
+    -CAcreateserial -out /mosquitto/config/certs/server.crt -days 365 -sha256
+
+# Remove unnecessary files
+RUN rm /mosquitto/config/certs/server.csr
+
+# Create the Mosquitto configuration file with TLS and WebSocket support
+RUN echo "listener ${MQTT_PORT}" > /mosquitto/config/mosquitto.conf \
+    && echo "protocol mqtt" >> /mosquitto/config/mosquitto.conf \
+    && echo "cafile ${MQTT_TLS_CA}" >> /mosquitto/config/mosquitto.conf \
+    && echo "certfile ${MQTT_TLS_CERT}" >> /mosquitto/config/mosquitto.conf \
+    && echo "keyfile ${MQTT_TLS_KEY}" >> /mosquitto/config/mosquitto.conf \
+    && echo "allow_anonymous true" >> /mosquitto/config/mosquitto.conf \
+    && echo "require_certificate false" >> /mosquitto/config/mosquitto.conf \
+    && echo "tls_version tlsv1.2" >> /mosquitto/config/mosquitto.conf \
+    && echo "" >> /mosquitto/config/mosquitto.conf \
+    && echo "listener ${WEBSOCKET_PORT}" >> /mosquitto/config/mosquitto.conf \
+    && echo "protocol websockets" >> /mosquitto/config/mosquitto.conf \
+    && echo "cafile ${MQTT_TLS_CA}" >> /mosquitto/config/mosquitto.conf \
+    && echo "certfile ${MQTT_TLS_CERT}" >> /mosquitto/config/mosquitto.conf \
+    && echo "keyfile ${MQTT_TLS_KEY}" >> /mosquitto/config/mosquitto.conf \
+    && echo "require_certificate false" >> /mosquitto/config/mosquitto.conf \
+    && echo "tls_version tlsv1.2" >> /mosquitto/config/mosquitto.conf
+
+# Expose the MQTT TLS and WebSocket ports
+EXPOSE ${MQTT_PORT}
+EXPOSE ${WEBSOCKET_PORT}
+
+# Start Mosquitto broker
+CMD ["/usr/sbin/mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]

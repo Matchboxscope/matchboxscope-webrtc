@@ -1,0 +1,52 @@
+# Use an official Ubuntu as a base image
+# sudo docker build -t zlmediakit-whip-ssl .
+# sudo docker run -it -p 443:443  zlmediakit-whip-ssl
+
+# Use an official Ubuntu as a base image
+FROM ubuntu:20.04
+
+# Set the non-interactive frontend to avoid interactive prompts
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Set environment variables to avoid tzdata prompts
+ENV TZ=Etc/UTC
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git cmake build-essential libssl-dev libcurl4-openssl-dev libmysqlclient-dev \
+    openssl tzdata \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
+WORKDIR /opt
+
+# Clone the ZLMediaKit repository with submodules
+RUN git clone --recurse-submodules https://github.com/ZLMediaKit/ZLMediaKit.git
+
+# Build ZLMediaKit
+WORKDIR /opt/ZLMediaKit
+RUN cmake . && make -j$(nproc)
+
+# Verify that the ZLMediaKit executable exists
+RUN ls -l /opt/ZLMediaKit/release/linux/Debug/ZLMediaKit || { echo "ZLMediaKit build failed"; exit 1; }
+
+# Create directory for SSL certificates
+RUN mkdir -p /opt/ZLMediaKit/release/linux/Debug/ssl
+
+# Generate self-signed SSL certificate
+RUN openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
+    -keyout /opt/ZLMediaKit/release/linux/Debug/ssl/server.key \
+    -out /opt/ZLMediaKit/release/linux/Debug/ssl/server.crt \
+    -subj "/CN=localhost"
+
+# Expose the HTTPS port
+EXPOSE 443
+
+# Copy a custom configuration if needed
+COPY config.ini /opt/ZLMediaKit/release/linux/Debug/config.ini
+
+# Set the environment variables
+ENV LD_LIBRARY_PATH /opt/ZLMediaKit/release/linux/Debug/
+
+# Start the ZLMediaKit server
+CMD ["./release/linux/Debug/ZLMediaKit", "-d"]

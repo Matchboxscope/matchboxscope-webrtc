@@ -10,33 +10,36 @@ Stream JPEG over WebRTC datachannel with ESP32.
 
 ## Instructions
 
-### Install esp-idf
-at lease v5.2
+### Configure
 ```bash
-$ git clone -b v5.2.2 https://github.com/espressif/esp-idf.git
-$ cd esp-idf
-$ source install.sh
-$ source export.sh
+conda deactivate
+cd /Users/bene/Dropbox/Dokumente/Promotion/PROJECTS/matchboxscope-webrtc/esp-idf
+source export.sh
+cd /Users/bene/Dropbox/Dokumente/Promotion/PROJECTS/matchboxscope-webrtc/examples/esp32s3
+idf.py menuconfig
+# Choose Example Connection Configuration and change the SSID and password
 ```
+
 
 ### Download
 ```bash
-$ git clone https://github.com/sepfy/libpeer
-$ cd libpeer/examples/esp32
-$ idf.py add-dependency "espressif/esp32-camera^2.0.4"
-$ idf.py add-dependency "mdns"
-$ git clone --recursive https://github.com/sepfy/esp_ports.git components/srtp
+cd /Users/bene/Dropbox/Dokumente/Promotion/PROJECTS/matchboxscope-webrtc/examples/esp32
+idf.py add-dependency "espressif/esp32-camera^2.0.4"
+idf.py add-dependency "mdns"
+git clone --recursive https://github.com/sepfy/esp_ports.git components/srtp
 ```
 
 ### Configure
 ```bash
-$ idf.py menuconfig
+cd /Users/bene/Dropbox/Dokumente/Promotion/PROJECTS/matchboxscope-webrtc/examples/esp32
+idf.py menuconfig
 # Choose Example Connection Configuration and change the SSID and password
 ```
 
 ### Build 
 ```bash
-$ idf.py build
+cd /Users/bene/Dropbox/Dokumente/Promotion/PROJECTS/matchboxscope-webrtc/examples/esp32
+idf.py build && idf.py flash
 ```
 
 ### Test

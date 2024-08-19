@@ -224,7 +224,7 @@ void camera_task(void *pvParameters) {
         ESP_LOGE(TAG, "Camera capture failed");
       }
 
-      //ESP_LOGI(TAG, "Camera captured. size=%zu, timestamp=%llu", fb->len, fb->timestamp);
+      ESP_LOGI(TAG, "Camera captured. size=%zu, timestamp=%llu", fb->len, fb->timestamp);
       peer_connection_datachannel_send(g_pc, (char*)fb->buf, fb->len);
 
       fps++;

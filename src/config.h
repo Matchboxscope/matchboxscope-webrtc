@@ -27,8 +27,10 @@
 #endif
 
 // siganling
-#define MQTT_HOST "test.mosquitto.org"
+//#define MQTT_HOST "broker.emqx.io"
 #define MQTT_PORT 8883
+//#define MQTT_HOST "192.168.43.235"
+#define MQTT_HOST "192.168.43.235"
 
 #define WHIP_HOST "192.168.43.235"
 #define WHIP_PATH "/index/api/whip?app=live&stream=test"
@@ -39,6 +41,6 @@
 // default use wifi interface
 #define IFR_NAME "w"
 
-//#define LOG_LEVEL LEVEL_DEBUG
+#define LOG_LEVEL LEVEL_DEBUG
 
 #endif // CONFIG_H_
