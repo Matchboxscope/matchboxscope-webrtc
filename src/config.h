@@ -29,10 +29,17 @@
 // siganling
 //#define MQTT_HOST "broker.emqx.io"
 #define MQTT_PORT 8883
-//#define MQTT_HOST "192.168.43.235"
-#define MQTT_HOST "192.168.43.235"
-
+#if 1
+#define mSSID "Blynk"
+#define mPASS "12345678"
 #define WHIP_HOST "192.168.43.235"
+#define MQTT_HOST "192.168.43.235"
+#else
+#define mSSID "BenMur"
+#define mPASS "MurBen3128"
+#define MQTT_HOST "192.168.2.191" // BEN MUR
+#endif 
+
 #define WHIP_PATH "/index/api/whip?app=live&stream=test"
 #define WHIP_PORT 443
 

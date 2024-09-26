@@ -59,7 +59,7 @@ static camera_config_t camera_config = {
   .pin_reset = CAM_PIN_RESET,
   .xclk_freq_hz = 10000000,
   .pixel_format = PIXFORMAT_YUV422,
-  .frame_size = FRAMESIZE_96X96,
+  .frame_size = FRAMESIZE_VGA,// FRAMESIZE_96X96,
   .jpeg_quality = 20,
   .fb_count = 3,
   .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
@@ -90,8 +90,8 @@ esp_err_t video_init(){
   esp_h264_err_t ret = ESP_H264_ERR_OK;
 
   cfg.fps = 7;
-  cfg.height = 96;
-  cfg.width = 96;
+  cfg.height = 480;//96;
+  cfg.width = 640;//96;
   cfg.pic_type = ESP_H264_RAW_FMT_YUV422;
   one_image_size = cfg.height * cfg.width * 2.0;
   ESP_LOGI(TAG, "one_image_size %d", one_image_size);

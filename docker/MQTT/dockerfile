@@ -1,6 +1,6 @@
 # Use the official Eclipse Mosquitto image as the base image
 # sudo docker build -t mqtt-broker-tls .
-# sudo docker run -it -p 8883:8883 -p 8084:8084 --name mqtt-broker mqtt-broker-tls
+# sudo docker run -it -p 8883:8883 -p 8084:8084 -p 8080:8080 --name mqtt-broker mqtt-broker-tls
 # sudo docker stop mqtt-broker-tls
 
 
@@ -9,7 +9,8 @@ FROM eclipse-mosquitto:2.0
 
 # Set environment variables for the broker
 ENV MQTT_PORT=8883
-ENV WEBSOCKET_PORT=8084
+ENV WEBSOCKET_PORT_SECURE=8084
+ENV WEBSOCKET_PORT_UNSECURE=8080
 ENV MQTT_TLS_CERT=/mosquitto/config/certs/server.crt
 ENV MQTT_TLS_KEY=/mosquitto/config/certs/server.key
 ENV MQTT_TLS_CA=/mosquitto/config/certs/ca.crt
@@ -48,17 +49,22 @@ RUN echo "listener ${MQTT_PORT}" > /mosquitto/config/mosquitto.conf \
     && echo "require_certificate false" >> /mosquitto/config/mosquitto.conf \
     && echo "tls_version tlsv1.2" >> /mosquitto/config/mosquitto.conf \
     && echo "" >> /mosquitto/config/mosquitto.conf \
-    && echo "listener ${WEBSOCKET_PORT}" >> /mosquitto/config/mosquitto.conf \
+    && echo "listener ${WEBSOCKET_PORT_SECURE}" >> /mosquitto/config/mosquitto.conf \
     && echo "protocol websockets" >> /mosquitto/config/mosquitto.conf \
     && echo "cafile ${MQTT_TLS_CA}" >> /mosquitto/config/mosquitto.conf \
     && echo "certfile ${MQTT_TLS_CERT}" >> /mosquitto/config/mosquitto.conf \
     && echo "keyfile ${MQTT_TLS_KEY}" >> /mosquitto/config/mosquitto.conf \
     && echo "require_certificate false" >> /mosquitto/config/mosquitto.conf \
-    && echo "tls_version tlsv1.2" >> /mosquitto/config/mosquitto.conf
+    && echo "tls_version tlsv1.2" >> /mosquitto/config/mosquitto.conf \
+    && echo "" >> /mosquitto/config/mosquitto.conf \
+    && echo "listener ${WEBSOCKET_PORT_UNSECURE}" >> /mosquitto/config/mosquitto.conf \
+    && echo "protocol websockets" >> /mosquitto/config/mosquitto.conf \
+    && echo "allow_anonymous true" >> /mosquitto/config/mosquitto.conf
 
-# Expose the MQTT TLS and WebSocket ports
+# Expose the MQTT TLS, secure WebSocket, and unsecure WebSocket ports
 EXPOSE ${MQTT_PORT}
-EXPOSE ${WEBSOCKET_PORT}
+EXPOSE ${WEBSOCKET_PORT_SECURE}
+EXPOSE ${WEBSOCKET_PORT_UNSECURE}
 
 # Start Mosquitto broker
 CMD ["/usr/sbin/mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]

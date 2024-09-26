@@ -1,3 +1,6 @@
+
+#define BLYNK 
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -32,17 +35,14 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static int s_retry_num = 0;
 
-static bool ISH264 = true;
+static bool ISH264 = false;
 static TaskHandle_t xPcTaskHandle = NULL;
-static TaskHandle_t xAudioTaskHandle = NULL;
 static TaskHandle_t xVideoTaskHandle = NULL;
 static TaskHandle_t xCameraTaskHandle = NULL;
 static TaskHandle_t xPsTaskHandle = NULL;
 
-extern esp_err_t audio_init();
 extern esp_err_t video_init();
 extern esp_err_t camera_init();
-extern void audio_task(void *pvParameters);
 extern void video_task(void *pvParameters);
 extern void camera_task(void *pvParameters);
 
@@ -253,18 +253,8 @@ esp_err_t custom_connect()
   // Configure the WiFi connection
   wifi_config_t wifi_config = {
       .sta = {
-          //.ssid = "IPHT-Internet",
-          //.password = "D3vk_?RkH!25nz", 
-          
-          .ssid = "Blynk", //"BenMur",         //
-          .password = "12345678", //"MurBen3128", //
-          
-          
-         /*.ssid = "BenMur",         //
-          .password = "MurBen3128", //
-          .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-          */
-          
+          .ssid = mSSID,
+          .password = mPASS
       },
   };
 
@@ -348,7 +338,6 @@ void app_main(void)
   peer_init();
   if (ISH264)
   {
-    audio_init();
     video_init();
   }
   else
@@ -367,11 +356,7 @@ void app_main(void)
 
   if (ISH264)
   {
-    xTaskCreatePinnedToCore(audio_task, "audio", 20480, NULL, 5, &xAudioTaskHandle, 0);
-
     xTaskCreatePinnedToCore(video_task, "video", 10240, NULL, 6, &xVideoTaskHandle, 0);
-
-
   }
   else
   {
